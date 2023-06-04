@@ -103,20 +103,20 @@ async fn main() {
 
     let db = repo::Db {};
 
-    ply.plyh2().register(async move |a:Article| {
-        println!("{}",a.id);
-        if a.id == "1" {
-            return Err(())
-        }
-        Ok(())
-    });
-    ply.plyh2().register(async move |t:Tool| {
-        println!("{}",t.id);
-        if t.id == "1" {
-            return Err(())
-        }
-        Ok(())
-    });
+    // ply.plyh2().register(async move |a:Article| {
+    //     println!("{}",a.id);
+    //     if a.id == "1" {
+    //         return Err(())
+    //     }
+    //     Ok(())
+    // });
+    // ply.plyh2().register(async move |t:Tool| {
+    //     println!("{}",t.id);
+    //     if t.id == "1" {
+    //         return Err(())
+    //     }
+    //     Ok(())
+    // });
 
 
     let a = Article {

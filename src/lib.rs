@@ -2,12 +2,15 @@
 #![feature(unboxed_closures)]
 
 use std::collections::HashMap;
+use std::future;
 use tokio_stream::StreamExt;
 use std::future::Future;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::mpsc::Sender;
 use tokio_stream::wrappers::ReceiverStream;
+// use futures::future::BoxFuture;
+use futures_util::future::BoxFuture;
 
 #[derive(Debug)]
 pub struct Error {}
@@ -42,13 +45,10 @@ impl Ply {
             tx: self.tx.clone(),
         }
     }
-    pub fn plyh2<Fut, T>(&mut self) -> PlyH2<Fut, T> where
-    Fut: Future<Output = Result<(), ()>>
-    {
+    pub fn plyh2(&mut self) -> PlyH2 {
         let rx = self.rx.take().expect("plyh2 can only be called once");
         PlyH2 {
             rx,
-            tab2: Default::default(),
             tab: Default::default(),
         }
     }
@@ -65,44 +65,64 @@ impl PlyH {
     }
 }
 
-// #[derive(Clone)]
-struct Entry<T> {
-    name: String,
-    de: fn(Vec<u8>) -> T,
-    // f: F,
-}
+// trait En {
+//     type Ent: FromMsg;
+//     fn name() -> &'static str {
+//         Self::Ent::name()
+//     }
+//     fn de(b: Vec<u8>) -> Self::Ent {
+//         Self::Ent::from_msg(b)
+//     }
+//     fn f(msg: Msg) -> BoxFuture<'static,Result<(), Error>>;
+// }
+
+// struct Entry<T> {}
+//
+// impl<T: FromMsg> Entry<T> {
+//
+//     fn name() -> &'static str {
+//         T::name()
+//     }
+//     fn de(b: Vec<u8>) -> T {
+//         T::from_msg(b)
+//     }
+//     // fn f(e: Self::Ent) -> BoxFuture<'static,Result<(), Error>>;
+// }
+
+// // #[derive(Clone)]
+// struct Entry<T> {
+//     f: Box<dyn Fn(dyn FromMsg) -> BoxFuture<Output = Result<(), ()>>>,
+// }
+
+// impl En for Fn(
 
 // #[derive(Clone)]
-pub struct PlyH2<Fut, T> {
+pub struct PlyH2 {
     rx: Receiver<Msg>,
-    tab2: HashMap<String, Entry<T>>,
-    tab: HashMap<String, Box<dyn Fn(T) -> Fut>>,
+    tab: HashMap<String, Box<dyn Fn(Msg) -> BoxFuture<'static,Result<(), Error>>>>,
 }
 
-impl<Fut: std::future::Future, T> PlyH2<Fut, T> {
-    pub fn register<F>(&mut self, f: F)
+impl PlyH2 {
+    pub fn register<Fut, T,F>(&mut self, f: F)
     where
         T: FromMsg,
         F: Fn(T) -> Fut + 'static,
-        Fut: Future<Output = Result<(), ()>>,
+        Fut: Future<Output = Result<(), Error>> + Send + 'static,
     {
-        let e = Entry {
-            name: String::from(T::name()),
-            de: T::from_msg,
-        };
-        self.tab2.insert(String::from(T::name()), e);
-        self.tab.insert(String::from(T::name()), Box::new(f));
+        self.tab.insert(String::from(T::name()), Box::new(move |msg:Msg| {
+            let t:T = T::from_msg(msg.bytes);
+            Box::pin(f(t))
+        }));
     }
 
     pub async fn run(mut self) {
         let mut s: ReceiverStream<Msg> = ReceiverStream::new(self.rx);
         while let Some(msg) = s.next().await {
-            let e = self.tab2.get("").unwrap();
-            let a = self.tab.get("").unwrap();
+            let e = self.tab.get(msg.name.as_str()).unwrap();
 
-            let x = (e.de)(msg.bytes);
+            let x = e(msg);
 
-            a(x).await;
+            x.await;
         }
     }
 }
