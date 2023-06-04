@@ -65,37 +65,6 @@ impl PlyH {
     }
 }
 
-// trait En {
-//     type Ent: FromMsg;
-//     fn name() -> &'static str {
-//         Self::Ent::name()
-//     }
-//     fn de(b: Vec<u8>) -> Self::Ent {
-//         Self::Ent::from_msg(b)
-//     }
-//     fn f(msg: Msg) -> BoxFuture<'static,Result<(), Error>>;
-// }
-
-// struct Entry<T> {}
-//
-// impl<T: FromMsg> Entry<T> {
-//
-//     fn name() -> &'static str {
-//         T::name()
-//     }
-//     fn de(b: Vec<u8>) -> T {
-//         T::from_msg(b)
-//     }
-//     // fn f(e: Self::Ent) -> BoxFuture<'static,Result<(), Error>>;
-// }
-
-// // #[derive(Clone)]
-// struct Entry<T> {
-//     f: Box<dyn Fn(dyn FromMsg) -> BoxFuture<Output = Result<(), ()>>>,
-// }
-
-// impl En for Fn(
-
 // #[derive(Clone)]
 pub struct PlyH2 {
     rx: Receiver<Msg>,
