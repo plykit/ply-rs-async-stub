@@ -61,7 +61,12 @@ pub struct PlyH {
 
 impl PlyH {
     pub async fn update<E: ToMsg>(&self, entity: E) -> Result<(), Error> {
-        todo!()
+        let msg = Msg{
+            name: String::from(E::name()),
+            bytes: entity.to_msg()
+        };
+        println!("Event: {} <{}>",msg.name,String::from_utf8(entity.to_msg()).unwrap());
+        self.tx.send(msg).await.map_err(|e| Error{})
     }
 }
 
@@ -88,6 +93,7 @@ impl PlyH2 {
         let mut s: ReceiverStream<Msg> = ReceiverStream::new(self.rx);
         while let Some(msg) = s.next().await {
             let e = self.tab.get(msg.name.as_str()).unwrap();
+            println!("                       Handling: {} <{}>",msg.name.as_str(), String::from_utf8(msg.bytes.clone()).unwrap());
 
             let x = e(msg);
 
